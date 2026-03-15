@@ -1,11 +1,12 @@
 [package]
 name = "x264-sys"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "FFI bindings to x264"
 repository = "https://github.com/rust-av/x264-rs"
 edition = "2018"
+links = "x264"
 
 [build-dependencies]
 bindgen = "0.71.0"

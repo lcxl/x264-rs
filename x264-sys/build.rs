@@ -200,5 +200,7 @@ fn main() {
 
     let mut file = fs::File::create(out_path.join("x264.rs")).unwrap();
 
+    println!("cargo:version={}", version);
+
     let _ = file.write(s.as_bytes());
 }
