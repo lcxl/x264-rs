@@ -34,9 +34,16 @@ fn use_pregenerated(out_dir: &Path, buildver: &str) {
 }
 
 #[cfg(target_os = "windows")]
-fn find_file<F: Fn(&str) -> bool>(root: &Path, predicate: F) -> Option<PathBuf> {
+fn find_file<F: Fn(&str) -> bool, E: Fn(&Path) -> bool>(
+    root: &Path,
+    predicate: F,
+    exclude: E,
+) -> Option<PathBuf> {
     let mut stack = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
+        if exclude(&dir) {
+            continue;
+        }
         let entries = match fs::read_dir(&dir) {
             Ok(entries) => entries,
             Err(_) => continue,
@@ -94,12 +101,45 @@ fn download_windows_x264(out_dir: &Path) -> (PathBuf, PathBuf) {
             .expect("Failed to write x264 download stamp");
     }
 
-    let lib_path = find_file(&download_dir, |name| {
+    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_else(|_| "x86_64".to_string());
+    let arch_dir = match target_arch.as_str() {
+        "x86_64" => "x64",
+        "x86" => "x86",
+        "aarch64" => "ARM64",
+        _ => "x64",
+    };
+
+    let lib_pred = |name: &str| {
         name.eq_ignore_ascii_case("libx264.lib") || name.eq_ignore_ascii_case("x264.lib")
+    };
+
+    // Try to find in the specific arch directory first
+    let lib_path = find_file(
+        &download_dir.join("lib").join(arch_dir),
+        lib_pred,
+        |_| false,
+    )
+    .or_else(|| {
+        // Fallback to recursive search but exclude other arch directories
+        find_file(
+            &download_dir.join("lib"),
+            lib_pred,
+            |path| {
+                let name = path.file_name().and_then(|v| v.to_str()).unwrap_or("");
+                (name == "x86" && arch_dir != "x86")
+                    || (name == "x64" && arch_dir != "x64")
+                    || (name == "ARM64" && arch_dir != "ARM64")
+            },
+        )
     })
     .expect("Downloaded x264 lib file not found");
-    let include_path = find_file(&download_dir, |name| name.eq_ignore_ascii_case("x264.h"))
-        .expect("Downloaded x264 header not found");
+
+    let include_path = find_file(
+        &download_dir,
+        |name| name.eq_ignore_ascii_case("x264.h"),
+        |_| false,
+    )
+    .expect("Downloaded x264 header not found");
 
     let lib_dir = lib_path
         .parent()
