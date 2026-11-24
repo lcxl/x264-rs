@@ -1,6 +1,6 @@
 [package]
 name = "x264-sys"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "FFI bindings to x264"
@@ -14,7 +14,7 @@ system-deps = "7.0.3"
 
 [target.'cfg(windows)'.build-dependencies]
 reqwest = { version = "0.12.23", features = ["blocking", "rustls-tls"] }
-zip = "6.0.0"
+zip = { version = "9.4.1", default-features = false, features = ["deflate"] }
 
 [package.metadata.system-deps]
 x264 = "0.147"
